@@ -1,0 +1,55 @@
+## ==== REQUIRED ++ ==========
+become_user_setting: "{{ lookup('onepassword', 'homelabDefault', field='username') }}"
+
+
+## ================= Vulnerable Ubuntu SSH Config ================= ##
+
+## ==== Defaults ++
+
+vulnerable_ubuntu_sshconfig_name: "ubuntu-poc-deployment"
+vulnerable_ubuntu_sshconfig_label: "ubuntu-poc"
+vulnerable_ubuntu_sshconfig_service_label: "ubuntu-poc-server"
+vulnerable_ubuntu_sshconfig_namespace: "ubuntu-poc"
+vulnerable_ubuntu_sshconfig_service_account: "ubuntu-poc-service-account"
+vulnerable_ubuntu_sshconfig_replicas: 2
+vulnerable_ubuntu_sshconfig_image: "ubuntu"
+vulnerable_ubuntu_sshconfig_containerport: 22
+vulnerable_ubuntu_sshconfig_port: 22
+vulnerable_ubuntu_sshconfig_targetport: 22
+vulnerable_ubuntu_sshconfig_env_args:
+  - name: NAMESPACE
+    value: nginx-webserver
+vulnerable_ubuntu_sshconfig_container_args:
+  - "apt-get update && apt-get install -y curl"
+  - "echo 'Ubuntu configuration changes completed'"
+  - "while true; do sleep 30; done"
+vulnerable_ubuntu_sshconfig_role_rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete", "watch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "create", "delete"]
+
+## ================= Kali Attack Config ================= ##
+
+## ==== Defaults ++
+
+kali_entry_sshconfig_name: "kali-poc-deployment"
+kali_entry_sshconfig_label: "kali-poc"
+kali_entry_sshconfig_service_label: "kali-poc-server"
+kali_entry_sshconfig_namespace: "kali-poc"
+kali_entry_sshconfig_service_account: "kali-poc-service-account"
+kali_entry_sshconfig_replicas: 2
+kali_entry_sshconfig_image: "alilinux/kali-rolling:latest"
+kali_entry_sshconfig_containerport: 22
+kali_entry_sshconfig_port: 22
+kali_entry_sshconfig_targetport: 22
+kali_entry_sshconfig_env_args:
+  - name: NAMESPACE
+    value: nginx-webserver
+kali_entry_sshconfig_container_args:
+  - "apt-get update && apt-get install -y metasploit-framework"
+  - "echo 'Metasploit install complete'"
+  - "while true; do sleep 30; done"
+kali_entry_sshconfig_role_rules: []
