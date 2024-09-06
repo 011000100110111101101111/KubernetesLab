@@ -41,7 +41,7 @@ kali_entry_sshconfig_service_label: "kali-poc-server"
 kali_entry_sshconfig_namespace: "kali-poc"
 kali_entry_sshconfig_service_account: "kali-poc-service-account"
 kali_entry_sshconfig_replicas: 2
-kali_entry_sshconfig_image: "alilinux/kali-rolling:latest"
+kali_entry_sshconfig_image: "kalilinux/kali-rolling"
 kali_entry_sshconfig_containerport: 22
 kali_entry_sshconfig_port: 22
 kali_entry_sshconfig_targetport: 22
@@ -51,5 +51,6 @@ kali_entry_sshconfig_env_args:
 kali_entry_sshconfig_container_args:
   - "apt-get update && apt-get install -y metasploit-framework"
   - "echo 'Metasploit install complete'"
+  - "ssh-keygen -t rsa -b 4096 -f /root/.ssh/kali-key-$i -N ''"
   - "while true; do sleep 30; done"
 kali_entry_sshconfig_role_rules: []

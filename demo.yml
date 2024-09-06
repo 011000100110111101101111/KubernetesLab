@@ -1,6 +1,6 @@
 ############################################################################################
 # Assumptions
-# You have deployed a cluster (Can use the ansible script in this repo)
+# You have deployed a cluster (Can use the ansible script in my Nexus-2.0 repo)
 # CNI, CSI are setup, CNI is capable of firewalling
 ############################################################################################
 
@@ -86,8 +86,6 @@
             kubectl create namespace "{{ local_namespace }}"
           args:
             executable: /bin/bash
-          register: dummy_output
-          changed_when: dummy_output.rc != 0
         - name: Pre-Launch Task ... Create Service account
           ansible.builtin.shell: |
             kubectl apply -f - <<EOF
@@ -99,8 +97,6 @@
             EOF
           args:
             executable: /bin/bash
-          register: dummy_output
-          changed_when: dummy_output.rc != 0
         - name: Create Role "{{ local_label }}"
           ansible.builtin.shell: |
             kubectl apply -f - <<EOF
@@ -118,8 +114,6 @@
             EOF
           args:
             executable: /bin/bash
-          register: dummy_output
-          changed_when: dummy_output.rc != 0
         - name: Create RoleBinding "{{ local_label }}"
           ansible.builtin.shell: |
             kubectl apply -f - <<EOF
@@ -139,8 +133,6 @@
             EOF
           args:
             executable: /bin/bash
-          register: dummy_output
-          changed_when: dummy_output.rc != 0
         - name: Pre-Launch Task ... Create Cluster Role Binding
           ansible.builtin.shell: |
             kubectl apply -f - <<EOF
@@ -159,8 +151,6 @@
             EOF
           args:
             executable: /bin/bash
-          register: dummy_output
-          changed_when: dummy_output.rc != 0
         - name: Launch Task ... Install "{{ local_label }}"
           ansible.builtin.shell: |
             kubectl apply -f - <<EOF
@@ -200,8 +190,6 @@
             EOF
           args:
             executable: /bin/bash
-          register: dummy_output
-          changed_when: dummy_output.rc != 0
         - name: Launch Task ... Deploy Service "{{ local_label }}"
           ansible.builtin.shell: |
             kubectl apply -f - <<EOF
@@ -221,5 +209,16 @@
             EOF
           args:
             executable: /bin/bash
-          register: dummy_output
-          changed_when: dummy_output.rc != 0
+        - name: Grab Service IPS and store them remotely
+          ansible.builtin.shell: >
+            kubectl get svc -n "{{ local_namespace }}"
+            -o jsonpath='{range .items[*]}{.metadata.name}{" -> "}{.status.loadBalancer.ingress[*].ip}{"\n"}{end}'
+            > ~/remoteips.txt
+        - name: Fetch Remote IPS
+          ansible.builtin.fetch:
+            src: ~/remoteips.txt
+            dest: ~/localips.txt
+            flat: true
+        - name: Debug
+          ansible.builtin.debug:
+            var: command_result.stdout
