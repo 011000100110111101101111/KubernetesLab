@@ -6,6 +6,9 @@ become_user_setting: "{{ lookup('onepassword', 'homelabDefault', field='username
 
 ## ==== Defaults ++
 
+vulnerable_ubuntu_sshconfig_create_service_account: "true"
+vulnerable_ubuntu_sshconfig_create_cluster_role_binding: "true"
+
 vulnerable_ubuntu_sshconfig_name: "ubuntu-poc-deployment"
 vulnerable_ubuntu_sshconfig_label: "ubuntu-poc"
 vulnerable_ubuntu_sshconfig_service_label: "ubuntu-poc-server"
@@ -35,6 +38,9 @@ vulnerable_ubuntu_sshconfig_role_rules:
 
 ## ==== Defaults ++
 
+kali_entry_sshconfig_create_service_account: "true"
+kali_entry_sshconfig_create_cluster_role_binding: "false"
+
 kali_entry_sshconfig_name: "kali-poc-deployment"
 kali_entry_sshconfig_label: "kali-poc"
 kali_entry_sshconfig_service_label: "kali-poc-server"
@@ -49,8 +55,11 @@ kali_entry_sshconfig_env_args:
   - name: NAMESPACE
     value: nginx-webserver
 kali_entry_sshconfig_container_args:
-  - "apt-get update && apt-get install -y metasploit-framework"
-  - "echo 'Metasploit install complete'"
-  - "ssh-keygen -t rsa -b 4096 -f /root/.ssh/kali-key-$i -N ''"
-  - "while true; do sleep 30; done"
+  - |
+    apt-get update && apt-get install -y openssh-server openssh-client && \
+    ssh-keygen -t rsa -f /root/.ssh/id_rsa -N "" && \
+    cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys && \
+    chmod 600 /root/.ssh/authorized_keys && \
+    service ssh start && \
+    while true; do sleep 30; done
 kali_entry_sshconfig_role_rules: []
