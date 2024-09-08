@@ -51,11 +51,13 @@ def create_deployments(config_data):
         kali_num = 0
         ubuntu_num = 0
 
+        # Loop through each machine in the list
         for machine in machines:
             sub_output_directory = f'{output_directory}/deployment_{i}'
             if not os.path.exists(sub_output_directory):
                 os.makedirs(sub_output_directory)
 
+            # Handling kali and ubuntu separately with unique counters
             if machine == "kali":
                 kali_num += 1
                 machine_name_concat = f"{machine}-{i}-{kali_num}"
@@ -98,10 +100,11 @@ def create_deployments(config_data):
                 role_rules=role_rules,
                 service_port=service_port,
                 service_type=service_type,
-                service_account_enabled=service_account_enabled  # Pass whether service account is enabled
+                service_account_enabled=service_account_enabled
             )
 
-            with open(f'{sub_output_directory}/deployment_{machine}_{i}.yml', 'w') as output_file:
+            # Write each machine deployment to a unique file
+            with open(f'{sub_output_directory}/deployment_{machine}_{i}_{kali_num if machine == "kali" else ubuntu_num}.yml', 'w') as output_file:
                 output_file.write(deployment_output)
 
     print(f"Deployments created for {environments} environments successfully.")

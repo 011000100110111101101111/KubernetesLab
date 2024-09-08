@@ -1,18 +1,17 @@
-environments: 3
-namespace_name: "test-namespace"
+environments: 15
+namespace_name: "practice-namespace"
 environment: "production"
-replicas: 2
+replicas: 1
 machines:
   - kali
   - ubuntu
+  - ubuntu
 kali_config:
-  image: "kali:latest"
+  image: "kalilinux/kali-rolling"
   service_account: True
   service_account_name: "kali-service-account"
   container_commands:
-    - apt-get update && apt-get install -y openssh-server openssh-client
-    - ssh-keygen -t rsa -f /root/.ssh/id_rsa -N ""
-    - cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+    - while true; do sleep 30; done
   env:
     - name: "KALI_ENV_VAR"
       value: "some_value"
@@ -31,9 +30,7 @@ ubuntu_config:
   service_account: True
   service_account_name: "ubuntu-service-account"
   container_commands:
-    - apt-get update && apt-get install -y openssh-server openssh-client
-    - ssh-keygen -t rsa -f /root/.ssh/id_rsa -N ""
-    - cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+    - while true; do sleep 30; done
   env:
     - name: "UBUNTU_ENV_VAR"
       value: "another_value"

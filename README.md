@@ -25,4 +25,8 @@ kubectl delete -f namespaces
 
 ## Next steps
 
-Add ansible wrapper
+- [ ] Add ansible wrapper
+  - [ ] Automate running script and sending files
+  - [ ] Automate grabbing private keys and IPS for specific kali machines
+- [ ] Get rid of ubuntu loadbalancer IP, have it accesible via dns
+- [ ] Add Calico network rules to "restrict" access
