@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "ubuntu-service-account"
+  namespace: "test-namespace-1"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "ubuntu-1-1-deployment"
+  namespace: "test-namespace-1"
+  labels:
+    app: "ubuntu-1-1"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: "ubuntu-1-1"
+  template:
+    metadata:
+      labels:
+        app: "ubuntu-1-1"
+    spec:
+      
+      serviceAccountName: "ubuntu-service-account"
+      
+      containers:
+        - image: "ubuntu:latest"
+          env:
+            - name: "UBUNTU_ENV_VAR"
+              value: "another_value"
+          
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              apt-get update && apt-get install -y openssh-server openssh-client
+              ssh-keygen -t rsa -f /root/.ssh/id_rsa -N ""
+              cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+          
+          imagePullPolicy: Always
+          name: "ubuntu-1-1"
+          ports:
+            - containerPort: 80
+              protocol: TCP
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: "ubuntu-1-1-role"
+  namespace: "test-namespace-1"
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: "ubuntu-1-1-rolebinding"
+  namespace: "test-namespace-1"
+subjects:
+  - kind: ServiceAccount
+    name: "ubuntu-service-account"
+    namespace: "test-namespace-1"
+roleRef:
+  kind: Role
+  name: "ubuntu-1-1-role"
+  apiGroup: rbac.authorization.k8s.io
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: "ubuntu-1-1-service"
+  namespace: "test-namespace-1"
+  labels:
+    app: "ubuntu-1-1"
+spec:
+  ports:
+    - port: 9090
+      targetPort: 80
+  selector:
+    app: "ubuntu-1-1"
+  type: "LoadBalancer"

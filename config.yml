@@ -1,0 +1,49 @@
+environments: 3
+namespace_name: "test-namespace"
+environment: "production"
+replicas: 2
+machines:
+  - kali
+  - ubuntu
+kali_config:
+  image: "kali:latest"
+  service_account: True
+  service_account_name: "kali-service-account"
+  container_commands:
+    - apt-get update && apt-get install -y openssh-server openssh-client
+    - ssh-keygen -t rsa -f /root/.ssh/id_rsa -N ""
+    - cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+  env:
+    - name: "KALI_ENV_VAR"
+      value: "some_value"
+  ports:
+    - container_port: 22
+      target_port: 22
+      port: 22
+  role_rules:
+    - api_groups: '[""]'
+      resources: '["pods"]'
+      verbs: '["get", "watch", "list"]'
+  service_port: 8080
+  service_type: "LoadBalancer"
+ubuntu_config:
+  image: "ubuntu:latest"
+  service_account: True
+  service_account_name: "ubuntu-service-account"
+  container_commands:
+    - apt-get update && apt-get install -y openssh-server openssh-client
+    - ssh-keygen -t rsa -f /root/.ssh/id_rsa -N ""
+    - cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+  env:
+    - name: "UBUNTU_ENV_VAR"
+      value: "another_value"
+  ports:
+    - container_port: 80
+      target_port: 80
+      port: 80
+  role_rules:
+    - api_groups: '[""]'
+      resources: '["pods"]'
+      verbs: '["get", "watch", "list"]'
+  service_port: 9090
+  service_type: "LoadBalancer"

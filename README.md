@@ -1,14 +1,28 @@
 # KubernetesLab
 
-## Current State
+This is WAY faster than the previous all ansible implementation
 
-- Abstracted configuration to simple config file.
-- Can deploy and retreive ssh keys for machines while listing packages etc.
+## Usage
+
+Everything is configured in the config.yml
+
+For now its manual, but I will create an ansible wrapper to automate.
+
+```python
+# Create yaml files
+python creation.py
+
+# Apply namespaces first
+kubectl apply -f namespaces
+
+# Then apply all deployments, service accounts, services, etc
+kubectl apply -f deployments --recursive
+
+# If you want to delete
+kubectl delete -f deployments --recursive
+kubectl delete -f namespaces
+```
 
 ## Next steps
 
-- Add wrapper on top to combine envirements.
-  - IE a single run will deploy
-    - 1 kali machine (key is retreived)
-    - X exposed machines / services
-  - This can then be run X times, creating X envirements.
+Add ansible wrapper

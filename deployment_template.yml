@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ service_account_name }}"
+  namespace: "{{ namespace }}"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ deployment_name }}"
+  namespace: "{{ namespace }}"
+  labels:
+    app: "{{ app_label }}"
+spec:
+  replicas: {{ replicas }}
+  selector:
+    matchLabels:
+      app: "{{ app_label }}"
+  template:
+    metadata:
+      labels:
+        app: "{{ app_label }}"
+    spec:
+      {% if service_account_enabled %}
+      serviceAccountName: "{{ service_account_name }}"
+      {% endif %}
+      containers:
+        - image: "{{ container_image }}"
+          {% if env_variables -%}
+          env:
+          {%- for env in env_variables %}
+            - name: "{{ env.name }}"
+              value: "{{ env.value }}"
+          {%- endfor %}
+          {%- endif %}
+          {% if container_args %}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              {{ container_args | indent(14) }}
+          {% endif %}
+          imagePullPolicy: Always
+          name: "{{ app_label }}"
+          ports:
+            - containerPort: {{ container_port }}
+              protocol: TCP
+---
+{% if service_account_enabled %}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: "{{ role_name }}"
+  namespace: "{{ namespace }}"
+rules:
+  {%- for rule in role_rules %}
+  - apiGroups: {{ rule.api_groups }}
+    resources: {{ rule.resources }}
+    verbs: {{ rule.verbs }}
+  {%- endfor %}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: "{{ rolebinding_name }}"
+  namespace: "{{ namespace }}"
+subjects:
+  - kind: ServiceAccount
+    name: "{{ service_account_name }}"
+    namespace: "{{ namespace }}"
+roleRef:
+  kind: Role
+  name: "{{ role_name }}"
+  apiGroup: rbac.authorization.k8s.io
+---
+{% endif %}
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ service_name }}"
+  namespace: "{{ namespace }}"
+  labels:
+    app: "{{ app_label }}"
+spec:
+  ports:
+    - port: {{ service_port }}
+      targetPort: {{ container_port }}
+  selector:
+    app: "{{ app_label }}"
+  type: "{{ service_type }}"

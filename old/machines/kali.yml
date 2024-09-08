@@ -1,0 +1,229 @@
+- name: Deploy Kali
+  block:
+    - name: Set Deployment Variables
+      ansible.builtin.set_fact:
+        local_namespace: "{{ kali_entry_sshconfig_namespace }}-{{environment_index}}"
+        local_service_account: "{{ kali_entry_sshconfig_service_account }}-{{environment_index}}"
+        local_label: "{{ kali_entry_sshconfig_label }}-{{environment_index}}"
+        local_name: "{{ kali_entry_sshconfig_name }}-{{environment_index}}"
+        local_replicas: "{{ kali_entry_sshconfig_replicas }}"
+        local_already_deployed_check: "{{ kali_entry_sshconfig_label }}"
+        local_image: "{{ kali_entry_sshconfig_image }}"
+        local_containerport: "{{ kali_entry_sshconfig_containerport }}"
+        local_port: "{{ kali_entry_sshconfig_port }}"
+        local_targetport: "{{ kali_entry_sshconfig_targetport }}"
+        local_environments: "{{ kali_entry_sshconfig_env_args }}"
+        local_container_args: "{{ kali_entry_sshconfig_container_args }}"
+        local_role_rules: "{{ kali_entry_sshconfig_role_rules }}"
+        local_create_service_account: "{{ vulnerable_ubuntu_sshconfig_create_service_account }}"
+        local_create_cluster_role_binding: "{{ kali_entry_sshconfig_create_cluster_role_binding }}"
+    - name: Debug rendered YAML
+      ansible.builtin.copy:
+        dest: "/home/alex/test.yml"
+        content: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: "{{ local_name }}"
+            namespace: "{{ local_namespace }}"
+            labels:
+              app: "{{ local_label }}"
+          spec:
+            replicas: {{ local_replicas }}
+            selector:
+              matchLabels:
+                app: "{{ local_label }}"
+            template:
+              metadata:
+                labels:
+                  app: "{{ local_label }}"
+              spec:
+                serviceAccountName: "{{ local_service_account }}"
+                containers:
+                  - image: "{{ local_image }}"
+                    {% if local_environments -%}
+                    env:
+                      {{ local_environments | to_nice_yaml(indent=2) | indent(12) }}
+                    {% endif -%}
+                    {% if local_container_args -%}
+                    command: ["/bin/bash", "-c"]
+                    args:
+                      {{ local_container_args | to_nice_yaml(indent=4) | indent(12) }}
+                    {% endif -%}
+                    imagePullPolicy: Always
+                    name: "{{ local_label }}"
+                    ports:
+                      - containerPort: {{ local_containerport }}
+                        protocol: TCP
+        mode: preserve
+    - name: Create Service account
+      ansible.builtin.shell: |
+        kubectl apply -f - <<EOF
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: "{{ local_service_account }}"
+          namespace: "{{ local_namespace }}"
+        EOF
+      args:
+        executable: /bin/bash
+      when: local_create_service_account
+      changed_when: local_create_service_account
+
+    - name: Create Role "{{ local_label }}"
+      ansible.builtin.shell: |
+        kubectl apply -f - <<EOF
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: Role
+        metadata:
+          name: {{ local_label }}-role
+          namespace: "{{ local_namespace }}"
+        rules:
+        {% for rule in local_role_rules %}
+        - apiGroups: {{ rule.apiGroups }}
+          resources: {{ rule.resources }}
+          verbs: {{ rule.verbs }}
+        {% endfor %}
+        EOF
+      args:
+        executable: /bin/bash
+      when: local_create_service_account
+      changed_when: local_create_service_account
+
+    - name: Create RoleBinding "{{ local_label }}"
+      ansible.builtin.shell: |
+        kubectl apply -f - <<EOF
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: RoleBinding
+        metadata:
+          name: {{ local_label }}-rolebinding
+          namespace: "{{ local_namespace }}"
+        subjects:
+        - kind: ServiceAccount
+          name: "{{ local_service_account }}"
+          namespace: "{{ local_namespace }}"
+        roleRef:
+          kind: Role
+          name: {{ local_label }}-role
+          apiGroup: rbac.authorization.k8s.io
+        EOF
+      args:
+        executable: /bin/bash
+      when: local_create_service_account
+      changed_when: local_create_service_account
+
+    - name: Create Cluster Role Binding
+      ansible.builtin.shell: |
+        kubectl apply -f - <<EOF
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: "{{ local_service_account }}"
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: cluster-admin
+        subjects:
+          - kind: ServiceAccount
+            name: "{{ local_service_account }}"
+            namespace: "{{ local_namespace }}"
+        EOF
+      args:
+        executable: /bin/bash
+      when: local_create_cluster_role_binding
+      changed_when: local_create_cluster_role_binding
+
+    - name: Install "{{ local_label }}"
+      ansible.builtin.shell: |
+        kubectl apply -f - <<EOF
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: "{{ local_name }}"
+          namespace: "{{ local_namespace }}"
+          labels:
+            app: "{{ local_label }}"
+        spec:
+          replicas: {{ local_replicas }}
+          selector:
+            matchLabels:
+              app: "{{ local_label }}"
+          template:
+            metadata:
+              labels:
+                app: "{{ local_label }}"
+            spec:
+              serviceAccountName: "{{ local_service_account }}"
+              containers:
+                - image: "{{ local_image }}"
+                  {% if local_environments -%}
+                  env:
+                    {{ local_environments | to_nice_yaml(indent=2) | indent(12) }}
+                  {% endif -%}
+                  {% if local_container_args -%}
+                  command: ["/bin/bash", "-c"]
+                  args:
+                    {{ local_container_args | to_nice_yaml(indent=4) | indent(12) }}
+                  {% endif -%}
+                  imagePullPolicy: Always
+                  name: "{{ local_label }}"
+                  ports:
+                    - containerPort: {{ local_containerport }}
+                      protocol: TCP
+        EOF
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Deploy Service "{{ local_label }}"
+      ansible.builtin.shell: |
+        kubectl apply -f - <<EOF
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: "{{ local_label }}"
+          namespace: "{{ local_namespace }}"
+        spec:
+          selector:
+            app: "{{ local_label }}"
+          ports:
+            - port: {{ local_port }}
+              protocol: TCP
+              targetPort: {{ local_targetport }}
+          type: LoadBalancer
+        EOF
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Grab Service IPS and store them in register
+      ansible.builtin.command: >
+        kubectl get svc -n "{{ local_namespace }}"
+        -o jsonpath='{range .items[*]}{.metadata.name}{" -> "}{.status.loadBalancer.ingress[*].ip}{"\n"}{end}'
+      register: service_ips
+      changed_when: true
+
+    - name: Write IPS locally
+      delegate_to: localhost
+      ansible.builtin.copy:
+        content: "{{ service_ips.stdout }}"
+        dest: "{{ ansible_env.HOME }}/.remoteIPS"
+        mode: "0644"
+
+    - name: Debug
+      ansible.builtin.debug:
+        var: service_ips.stdout
+
+    - name: Grab pod name
+      ansible.builtin.command: >
+        kubectl get pods -n "{{ local_namespace }}" -l app="{{ local_label }}"
+        -o jsonpath='{.items[0].metadata.name}'
+      register: pod_name
+      changed_when: false
+
+    - name: Copy SSH private key from pod "{{ pod_name.stdout }}"
+      ansible.builtin.command: >
+        kubectl cp "{{ local_namespace }}/{{ pod_name.stdout }}:/root/.ssh/id_rsa"
+        "{{ ansible_env.HOME }}/.ssh/id_rsa_{{ local_namespace }}_{{ local_label }}"
+      delegate_to: localhost
+      changed_when: false

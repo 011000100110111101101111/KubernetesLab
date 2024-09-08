@@ -1,18 +1,24 @@
+# global-config.yml
+
+
+## High Level Configuration, see below to tweak things
+
+num_environments: 2
+deploy_kali: "true"
+deploy_ubuntu: "true"
+global_namespace: "testingenv"
+
 ## ==== REQUIRED ++ ==========
 become_user_setting: "{{ lookup('onepassword', 'homelabDefault', field='username') }}"
 
-
 ## ================= Vulnerable Ubuntu SSH Config ================= ##
-
-## ==== Defaults ++
-
 vulnerable_ubuntu_sshconfig_create_service_account: "true"
 vulnerable_ubuntu_sshconfig_create_cluster_role_binding: "true"
 
 vulnerable_ubuntu_sshconfig_name: "ubuntu-poc-deployment"
 vulnerable_ubuntu_sshconfig_label: "ubuntu-poc"
 vulnerable_ubuntu_sshconfig_service_label: "ubuntu-poc-server"
-vulnerable_ubuntu_sshconfig_namespace: "ubuntu-poc"
+vulnerable_ubuntu_sshconfig_namespace: "{{ global_namespace }}"
 vulnerable_ubuntu_sshconfig_service_account: "ubuntu-poc-service-account"
 vulnerable_ubuntu_sshconfig_replicas: 2
 vulnerable_ubuntu_sshconfig_image: "ubuntu"
@@ -36,15 +42,13 @@ vulnerable_ubuntu_sshconfig_role_rules:
 
 ## ================= Kali Attack Config ================= ##
 
-## ==== Defaults ++
-
 kali_entry_sshconfig_create_service_account: "true"
 kali_entry_sshconfig_create_cluster_role_binding: "false"
 
 kali_entry_sshconfig_name: "kali-poc-deployment"
 kali_entry_sshconfig_label: "kali-poc"
 kali_entry_sshconfig_service_label: "kali-poc-server"
-kali_entry_sshconfig_namespace: "kali-poc"
+kali_entry_sshconfig_namespace: "{{ global_namespace }}"
 kali_entry_sshconfig_service_account: "kali-poc-service-account"
 kali_entry_sshconfig_replicas: 2
 kali_entry_sshconfig_image: "kalilinux/kali-rolling"
