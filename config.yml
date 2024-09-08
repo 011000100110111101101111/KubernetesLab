@@ -1,4 +1,4 @@
-environments: 15
+environments: 2
 namespace_name: "practice-namespace"
 environment: "production"
 replicas: 1
@@ -11,6 +11,7 @@ kali_config:
   service_account: True
   service_account_name: "kali-service-account"
   container_commands:
+    - apt-get update && apt-get install -y iputils-ping net-tools
     - while true; do sleep 30; done
   env:
     - name: "KALI_ENV_VAR"
@@ -18,18 +19,28 @@ kali_config:
   ports:
     - container_port: 22
       target_port: 22
-      port: 22
+      service_port: 22
+  service_type: "LoadBalancer"
   role_rules:
     - api_groups: '[""]'
       resources: '["pods"]'
       verbs: '["get", "watch", "list"]'
-  service_port: 8080
-  service_type: "LoadBalancer"
+  firewall_enabled: True
+  firewall_label: kali
+  network_policy:
+    types:
+      - "Ingress"
+      - "Egress"
+    ingress:
+      - action: Deny
+    egress:
+      - action: Deny
 ubuntu_config:
   image: "ubuntu:latest"
   service_account: True
   service_account_name: "ubuntu-service-account"
   container_commands:
+    - apt-get update && apt-get install -y iputils-ping net-tools
     - while true; do sleep 30; done
   env:
     - name: "UBUNTU_ENV_VAR"
@@ -37,10 +48,19 @@ ubuntu_config:
   ports:
     - container_port: 80
       target_port: 80
-      port: 80
+      service_port: 80
+  service_type: "LoadBalancer"
   role_rules:
     - api_groups: '[""]'
       resources: '["pods"]'
       verbs: '["get", "watch", "list"]'
-  service_port: 9090
-  service_type: "LoadBalancer"
+  firewall_enabled: True
+  firewall_label: "ubuntu"
+  network_policy:
+    types:
+      - "Ingress"
+      - "Egress"
+    ingress:
+      - action: Deny
+    egress:
+      - action: Deny

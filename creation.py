@@ -1,3 +1,4 @@
+import json
 import os
 
 import yaml
@@ -73,16 +74,20 @@ def create_deployments(config_data):
             container_args = config.get('container_commands', [])
             container_port = config['ports'][0]['container_port']
             service_account_name = config['service_account_name']
-            service_account_enabled = config.get('service_account', False)
+            service_account_enabled = config['service_account']
             role_rules = config.get('role_rules', [])
-            service_port = config.get('service_port', 80)
+            service_port = config['ports'][0]['service_port']
             service_type = config.get('service_type', 'ClusterIP')
+            network_policy = config.get('network_policy', {})
 
             namespace = f'{config_data["namespace_name"]}-{i}'
             deployment_name = f'{machine_name_concat}-deployment'
             role_name = f"{machine_name_concat}-role" if service_account_enabled else None
             rolebinding_name = f"{machine_name_concat}-rolebinding" if service_account_enabled else None
             service_name = f"{machine_name_concat}-service"
+            network_policy_name = f"{machine_name_concat}-networkpolicy"
+            firewall_enabled = config['firewall_enabled']
+            firewall_label = config['firewall_label']
 
             deployment_output = deployment_template.render(
                 deployment_name=deployment_name,
@@ -100,7 +105,11 @@ def create_deployments(config_data):
                 role_rules=role_rules,
                 service_port=service_port,
                 service_type=service_type,
-                service_account_enabled=service_account_enabled
+                network_policy=network_policy,
+                network_policy_name=network_policy_name,
+                service_account_enabled=service_account_enabled,
+                firewall_enabled=firewall_enabled,
+                firewall_label=firewall_label
             )
 
             # Write each machine deployment to a unique file

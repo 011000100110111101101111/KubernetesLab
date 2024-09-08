@@ -20,6 +20,7 @@ spec:
     metadata:
       labels:
         app: "{{ app_label }}"
+        firewall: "{{ firewall_label }}"
     spec:
       {% if service_account_enabled %}
       serviceAccountName: "{{ service_account_name }}"
@@ -87,3 +88,71 @@ spec:
   selector:
     app: "{{ app_label }}"
   type: "{{ service_type }}"
+---
+{% if firewall_enabled %}
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: "{{ network_policy_name }}"
+  namespace: "{{ namespace }}"
+spec:
+  selector: firewall == "{{ firewall_label }}"
+  types:
+    {%- for policy_type in network_policy.types %}
+    - "{{ policy_type }}"
+    {%- endfor %}
+
+  {%- if network_policy.ingress %}
+  ingress:
+    {%- for rule in network_policy.ingress %}
+    - action: {{ rule.action }}
+      {%- if rule.protocol is defined %}
+      protocol: {{ rule.protocol }}
+      {%- endif %}
+      {%- if rule.source is defined %}
+      source:
+        {%- if rule.source.selector is defined %}
+        selector: firewall == "{{ rule.source.selector }}"
+        {%- endif %}
+      {%- endif %}
+      {%- if rule.destination is defined %}
+      destination:
+        {%- if rule.destination.ports is defined and rule.destination.ports|length > 0 %}
+        ports:
+          {%- for port in rule.destination.ports %}
+          - {{ port }}
+          {%- endfor %}
+        {%- endif %}
+      {%- endif %}
+    {%- endfor %}
+  {%- else %}
+  ingress: []
+  {%- endif %}
+
+  {%- if network_policy.egress %}
+  egress:
+    {%- for rule in network_policy.egress %}
+    - action: {{ rule.action }}
+      {%- if rule.protocol is defined %}
+      protocol: {{ rule.protocol }}
+      {%- endif %}
+      {%- if rule.destination is defined %}
+      destination:
+        {%- if rule.destination.nets is defined and rule.destination.nets|length > 0 %}
+        nets:
+          {%- for net in rule.destination.nets %}
+          - {{ net }}
+          {%- endfor %}
+        {%- endif %}
+        {%- if rule.destination.ports is defined and rule.destination.ports|length > 0 %}
+        ports:
+          {%- for port in rule.destination.ports %}
+          - {{ port }}
+          {%- endfor %}
+        {%- endif %}
+      {%- endif %}
+    {%- endfor %}
+  {%- else %}
+  egress: []
+  {%- endif %}
+{% endif %}
