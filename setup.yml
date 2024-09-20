@@ -1,0 +1,22 @@
+---
+- name: Yert
+  hosts: all
+  become: true
+  vars_files:
+    - "../../../LaunchZones/K8s/global-config.vars"
+  tasks:
+    - name: Run yml file creation script
+      ansible.builtin.shell: |
+        python creation.py
+      register: script creation
+      ignore_errors: true
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Fail or Pass.
+      ansible.builtin.fail:
+        msg: "Script errored"
+      when: basecluster_exists.rc != 0 or basecluster_exists.stdout == ""
+
+    - name: Apply

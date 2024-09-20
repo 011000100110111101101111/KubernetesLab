@@ -34,7 +34,19 @@ kali_config:
     ingress:
       - action: Deny
     egress:
-      - action: Deny
+      - action: Allow
+        protocol: TCP
+        destination:
+          nets:
+            - 0.0.0.0/0
+      - action: Allow
+        protocol: UDP
+        destination:
+          ports:
+            - 53
+      - action: Allow
+        protocol: ICMP
+
 ubuntu_config:
   image: "ubuntu:latest"
   service_account: True
@@ -49,7 +61,7 @@ ubuntu_config:
     - container_port: 80
       target_port: 80
       service_port: 80
-  service_type: "LoadBalancer"
+  service_type: "ClusterIP"
   role_rules:
     - api_groups: '[""]'
       resources: '["pods"]'
@@ -61,6 +73,7 @@ ubuntu_config:
       - "Ingress"
       - "Egress"
     ingress:
-      - action: Deny
+      - action: Allow
+        protocol: ICMP
     egress:
       - action: Deny
