@@ -1,0 +1,5 @@
+[localhost]
+127.0.0.1 ansible_connection=local
+
+[remote_machine]
+10.55.50.10 ansible_user=alex

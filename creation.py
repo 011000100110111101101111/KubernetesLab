@@ -43,42 +43,41 @@ def create_deployments(config_data):
     environments = config_data['environments']
     machines = config_data['machines']
     replicas = config_data['replicas']
-    kali_config = config_data['kali_config']
-    ubuntu_config = config_data['ubuntu_config']
 
     deployment_template = Template(deployment_template_content)
 
+    machine_counters = {}
+
     for i in range(environments):
-        kali_num = 0
-        ubuntu_num = 0
+        environment_dir = os.path.join(output_directory, f"env-{i+1}")
+        if not os.path.exists(environment_dir):
+            os.makedirs(environment_dir)
 
-        # Loop through each machine in the list
-        for machine in machines:
-            sub_output_directory = f'{output_directory}/deployment_{i}'
-            if not os.path.exists(sub_output_directory):
-                os.makedirs(sub_output_directory)
+        for j, machine in enumerate(machines):
 
-            # Handling kali and ubuntu separately with unique counters
-            if machine == "kali":
-                kali_num += 1
-                machine_name_concat = f"{machine}-{i}-{kali_num}"
-                config = kali_config
+            machine_config = config_data.get(f"{machine}_config", None)
 
-            elif machine == "ubuntu":
-                ubuntu_num += 1
-                machine_name_concat = f"{machine}-{i}-{ubuntu_num}"
-                config = ubuntu_config
+            if not machine_config:
+                print(f"Warning: No config found for machine '{machine}'")
+                continue
 
-            container_image = config['image']
-            env_variables = config.get('env', [])
-            container_args = config.get('container_commands', [])
-            container_port = config['ports'][0]['container_port']
-            service_account_name = config['service_account_name']
-            service_account_enabled = config['service_account']
-            role_rules = config.get('role_rules', [])
-            service_port = config['ports'][0]['service_port']
-            service_type = config.get('service_type', 'ClusterIP')
-            network_policy = config.get('network_policy', {})
+            if machine not in machine_counters:
+                machine_counters[machine] = 0
+
+            # Increment the counter for the machine type
+            machine_counters[machine] += 1
+            machine_name_concat = f"{machine}-{i}-{machine_counters[machine]}"
+
+            container_image = machine_config['image']
+            env_variables = machine_config.get('env', [])
+            container_args = machine_config.get('container_commands', [])
+            container_port = machine_config['ports'][0]['container_port']
+            service_account_name = machine_config['service_account_name']
+            service_account_enabled = machine_config['service_account']
+            role_rules = machine_config.get('role_rules', [])
+            service_port = machine_config['ports'][0]['service_port']
+            service_type = machine_config.get('service_type', 'ClusterIP')
+            network_policy = machine_config.get('network_policy', {})
 
             namespace = f'{config_data["namespace_name"]}-{i}'
             deployment_name = f'{machine_name_concat}-deployment'
@@ -86,8 +85,10 @@ def create_deployments(config_data):
             rolebinding_name = f"{machine_name_concat}-rolebinding" if service_account_enabled else None
             service_name = f"{machine_name_concat}-service"
             network_policy_name = f"{machine_name_concat}-networkpolicy"
-            firewall_enabled = config['firewall_enabled']
-            firewall_label = config['firewall_label']
+            firewall_enabled = machine_config['firewall_enabled']
+            firewall_label = machine_config['firewall_label']
+            config_map_enabled = machine_config['config_map_enabled']
+            config_map = machine_config['config_map'] if config_map_enabled else None
 
             deployment_output = deployment_template.render(
                 deployment_name=deployment_name,
@@ -109,11 +110,12 @@ def create_deployments(config_data):
                 network_policy_name=network_policy_name,
                 service_account_enabled=service_account_enabled,
                 firewall_enabled=firewall_enabled,
-                firewall_label=firewall_label
+                firewall_label=firewall_label,
+                config_map=config_map
             )
 
             # Write each machine deployment to a unique file
-            with open(f'{sub_output_directory}/deployment_{machine}_{i}_{kali_num if machine == "kali" else ubuntu_num}.yml', 'w') as output_file:
+            with open(f'{environment_dir}/deployment_{machine}_{i}_{machine_counters[machine]}.yml', 'w') as output_file:
                 output_file.write(deployment_output)
 
     print(f"Deployments created for {environments} environments successfully.")

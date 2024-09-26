@@ -1,0 +1,84 @@
+- name: Extract Services, Names, Specs, and Unique Namespaces
+  hosts: remote_machine
+  gather_facts: no
+  tasks:
+    - name: Run kubectl command to get services
+      command: kubectl get services -A -o json
+      register: kubectl_output
+
+    - name: Save output as JSON to local machine
+      copy:
+        content: "{{ kubectl_output.stdout }}"
+        dest: ./services_output.json
+
+- name: Test
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Read JSON file and extract service info
+      shell: |
+        jq -c '
+        .items[] |
+        select(.metadata.namespace | test("^practice-namespace-[0-9]+$")) |
+        {
+          namespace: .metadata.namespace,
+          name: .metadata.name,
+          type: .spec.type,
+          ip: (
+            if .spec.type == "ClusterIP" then
+              .spec.clusterIP
+            elif .spec.type == "LoadBalancer" then
+              .status.loadBalancer.ingress[0].ip
+            else
+              null
+            end
+          ),
+          selector: .spec.selector
+        }' services_output.json
+      register: service_info
+
+    - name: Debug service_info output
+      debug:
+        var: service_info.stdout_lines
+
+    - name: Debug the command being run
+      debug:
+        msg: 'Running command: kubectl get pods -n {{ item.namespace }} --selector="app={{ item.selector.app }}" -o jsonpath=''{.items[*].metadata.name}'''
+      loop: "{{ service_info.stdout_lines | map('from_json') | selectattr('type', 'equalto', 'LoadBalancer') | list }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Get pod names for each LoadBalancer service and update service_info
+      shell: |
+        kubectl get pods -n {{ item.namespace }} --selector="app={{ item.selector.app }}" -o jsonpath='{.items[*].metadata.name}'
+      register: pod_names
+      loop: "{{ service_info.stdout_lines | map('from_json') | selectattr('type', 'equalto', 'LoadBalancer') | list }}"
+      loop_control:
+        label: "{{ item.name }}"
+      delegate_to: "{{ inventory_hostname }}"
+
+    - name: Combine service info with pod names
+      set_fact:
+        service_info_combined: "{{ service_info_combined | default([]) + [{'ip': item.ip, 'name': item.name, 'namespace': item.namespace, 'type': item.type, 'podname': (pod_names.results[item_index].stdout if item_index < pod_names.results | length else 'No pod found')}] }}"
+      loop: "{{ service_info.stdout_lines | map('from_json') | list }}"
+      loop_control:
+        index_var: item_index
+
+    - name: Debug combined service information with pod names
+      debug:
+        var: service_info_combined
+# Curently we have
+#{
+#    "ip": "10.55.50.84",
+#    "name": "kali-1-2-service",
+#    "namespace": "practice-namespace-1",
+#    "podname": "No pod found",
+#    "type": "LoadBalancer"
+#},
+#{
+#    "ip": "10.101.80.195",
+#    "name": "ubuntu-1-4-service",
+#    "namespace": "practice-namespace-1",
+#    "podname": "No pod found",
+#    "type": "ClusterIP"
+#}

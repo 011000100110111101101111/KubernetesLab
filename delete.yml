@@ -1,0 +1,44 @@
+---
+- name: Cleanup Kubernetes Deployment Artifacts
+  hosts: remote_machine
+  tasks:
+    - name: Delete Kubernetes resources from ~/deployments
+      ansible.builtin.shell: |
+        kubectl delete -f {{ ansible_env.HOME }}/deployments --recursive
+      register: delete_deployments
+      failed_when: "'Error' in delete_deployments.stderr"
+      ignore_errors: yes
+
+    - name: Wait 75 seconds before applying deployments
+      ansible.builtin.pause:
+        seconds: 60
+
+    - name: Delete Kubernetes resources from ~/namespace
+      ansible.builtin.shell: |
+        kubectl delete -f {{ ansible_env.HOME }}/namespace
+      register: delete_namespace
+      failed_when: "'Error' in delete_namespace.stderr"
+      ignore_errors: yes
+
+    - name: Remove ~/deployments directory on remote
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/deployments"
+        state: absent
+
+    - name: Remove ~/namespace directory on remote
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/namespace"
+        state: absent
+
+- name: Remove local deployment artifacts
+  hosts: localhost
+  tasks:
+    - name: Remove local deployments directory
+      ansible.builtin.file:
+        path: "./deployments"
+        state: absent
+
+    - name: Remove local namespace directory
+      ansible.builtin.file:
+        path: "./namespace"
+        state: absent

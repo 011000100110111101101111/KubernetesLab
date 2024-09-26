@@ -9,6 +9,8 @@ machines:
 kali_config:
   image: "kalilinux/kali-rolling"
   service_account: True
+  firewall_enabled: True
+  config_map_enabled: False
   service_account_name: "kali-service-account"
   container_commands:
     - apt-get update && apt-get install -y iputils-ping net-tools
@@ -25,7 +27,6 @@ kali_config:
     - api_groups: '[""]'
       resources: '["pods"]'
       verbs: '["get", "watch", "list"]'
-  firewall_enabled: True
   firewall_label: kali
   network_policy:
     types:
@@ -50,6 +51,8 @@ kali_config:
 ubuntu_config:
   image: "ubuntu:latest"
   service_account: True
+  firewall_enabled: True
+  config_map_enabled: False
   service_account_name: "ubuntu-service-account"
   container_commands:
     - apt-get update && apt-get install -y iputils-ping net-tools
@@ -66,7 +69,6 @@ ubuntu_config:
     - api_groups: '[""]'
       resources: '["pods"]'
       verbs: '["get", "watch", "list"]'
-  firewall_enabled: True
   firewall_label: "ubuntu"
   network_policy:
     types:

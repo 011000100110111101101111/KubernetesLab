@@ -156,3 +156,17 @@ spec:
   egress: []
   {%- endif %}
 {% endif %}
+
+{%- if config_map.data %}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: default
+data:
+  {% for key, value in config_map.data.items() %}
+  {{ key }}: |
+    {{ value | indent(4) }}
+  {% endfor %}
+{%- endif %}
