@@ -114,6 +114,12 @@ spec:
         {%- if rule.source.selector is defined %}
         selector: firewall == "{{ rule.source.selector }}"
         {%- endif %}
+        {%- if rule.source.nets is defined and rule.source.nets|length > 0 %}
+        nets:
+          {%- for net in rule.source.nets %}
+          - {{ net }}
+          {%- endfor %}
+        {%- endif %}
       {%- endif %}
       {%- if rule.destination is defined %}
       destination:

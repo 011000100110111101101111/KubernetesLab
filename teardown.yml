@@ -9,9 +9,9 @@
       failed_when: "'Error' in delete_deployments.stderr"
       ignore_errors: yes
 
-    - name: Wait 75 seconds before applying deployments
+    - name: Wait 50 seconds before applying deployments
       ansible.builtin.pause:
-        seconds: 60
+        seconds: 50
 
     - name: Delete Kubernetes resources from ~/namespace
       ansible.builtin.shell: |
@@ -41,4 +41,14 @@
     - name: Remove local namespace directory
       ansible.builtin.file:
         path: "./namespace"
+        state: absent
+
+    - name: Remove local namespace directory
+      ansible.builtin.file:
+        path: "./keys"
+        state: absent
+
+    - name: Remove local services file
+      ansible.builtin.file:
+        path: "./services_output.json"
         state: absent

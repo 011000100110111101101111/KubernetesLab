@@ -13,7 +13,16 @@ kali_config:
   config_map_enabled: False
   service_account_name: "kali-service-account"
   container_commands:
-    - apt-get update && apt-get install -y iputils-ping net-tools
+    - apt-get update && \
+    - sleep 5 && \
+    - apt-get install -y iputils-ping net-tools && \
+    - sleep 15 && \
+    - apt-get install -y openssh-server && \
+    - service ssh start && \
+    - ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N "" && \
+    - sleep 15 && \
+    - sed -i 's/^#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
+    - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys && \
     - while true; do sleep 30; done
   env:
     - name: "KALI_ENV_VAR"
@@ -33,7 +42,14 @@ kali_config:
       - "Ingress"
       - "Egress"
     ingress:
-      - action: Deny
+      - action: Allow
+        protocol: TCP
+        source:
+          nets:
+            - 0.0.0.0/0
+        destination:
+          ports:
+            - 22
     egress:
       - action: Allow
         protocol: TCP
@@ -47,6 +63,7 @@ kali_config:
             - 53
       - action: Allow
         protocol: ICMP
+  config_map:
 
 ubuntu_config:
   image: "ubuntu:latest"
